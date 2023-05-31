@@ -9,12 +9,12 @@ Endpoint configuration
 """
 provider_connector_control_url = "http://localhost:19192/control/"
 provider_connector_public_url = "http://localhost:19291/public/"
-provider_connector_management_url = "http://localhost:19193/api/"
+provider_connector_management_url = "http://localhost:19193/api/v1/data/"
 provider_connector_ids_url = "http://localhost:19194/api/"
 
 consumer_connector_control_url = "http://localhost:29192/control/"
 consumer_connector_public_url = "http://localhost:29291/public/"
-consumer_connector_management_url = "http://localhost:29193/api/"
+consumer_connector_management_url = "http://localhost:29193/api/v1/data/"
 
 """
 Constants
@@ -45,7 +45,7 @@ provider_dp_instance_data = {
         "publicApiUrl": provider_connector_public_url
     }
 }
-response = requests.post(provider_connector_management_url + "v1/data/instances",
+response = requests.post(provider_connector_management_url + "instances",
                          headers={'Content-Type': 'application/json'},
                          data=json.dumps(provider_dp_instance_data))
 ic(response.status_code, response.text)
@@ -62,7 +62,7 @@ consumer_dp_instance_data = {
         "publicApiUrl": consumer_connector_public_url
     }
 }
-response = requests.post(consumer_connector_management_url + "v1/data/instances",
+response = requests.post(consumer_connector_management_url + "instances",
                          headers={'Content-Type': 'application/json'},
                          data=json.dumps(consumer_dp_instance_data))
 ic(response.status_code, response.text)
@@ -96,7 +96,7 @@ asset_data = {
     }
 }
 
-response = requests.post(provider_connector_management_url + "v1/data/v2/assets",
+response = requests.post(provider_connector_management_url + "v2/assets",
                          headers={'Content-Type': 'application/json'},
                          data=json.dumps(asset_data))
 ic(response.status_code, response.text)
@@ -126,11 +126,11 @@ policy_data = {
     }
 }
 
-response = requests.post(provider_connector_management_url + "v1/data/v2/policydefinitions",
+response = requests.post(provider_connector_management_url + "v2/policydefinitions",
                          headers={'Content-Type': 'application/json'},
                          data=json.dumps(policy_data))
 ic(response.status_code, response.text)
-exit()
+
 """
 Create contract definition
 """
@@ -144,10 +144,12 @@ contract_definition_data = {
     "criteria": []
 }
 
-response = requests.post(provider_connector_management_url + "v1/data/contractdefinitions",
+response = requests.post(provider_connector_management_url + "contractdefinitions",
                          headers={'Content-Type': 'application/json'},
                          data=json.dumps(contract_definition_data))
 ic(response.status_code, json.loads(response.text))
+
+exit()
 
 """
 Fetch catalog from provider
@@ -159,7 +161,7 @@ catalog_request_data = {
     "providerUrl": provider_connector_ids_url + "v1/ids/data"
 }
 
-response = requests.post(consumer_connector_management_url + "v1/data/catalog/request",
+response = requests.post(consumer_connector_management_url + "catalog/request",
                          headers={'Content-Type': 'application/json'},
                          data=json.dumps(catalog_request_data))
 ic(response.status_code, json.loads(response.text))
@@ -182,7 +184,7 @@ consumer_offer_data = {
     }
 }
 
-response = requests.post(consumer_connector_management_url + "v1/data/contractnegotiations",
+response = requests.post(consumer_connector_management_url + "contractnegotiations",
                          headers={'Content-Type': 'application/json'},
                          data=json.dumps(consumer_offer_data))
 ic(response.status_code, json.loads(response.text))
@@ -199,7 +201,7 @@ state = ""
 
 while state != "FINALIZED":
     ic("Requesting status of negotiation")
-    response = requests.get(consumer_connector_management_url + "v1/data/contractnegotiations/" + negotiation_id,
+    response = requests.get(consumer_connector_management_url + "contractnegotiations/" + negotiation_id,
                             headers={'Content-Type': 'application/json'})
     state = json.loads(response.text)["state"]
     ic(state)
@@ -220,7 +222,7 @@ transfer_data = {
     "managedResources": "false",
     "dataDestination": {"type": "HttpProxy"}
 }
-response = requests.post(consumer_connector_management_url + "v1/data/transferprocess",
+response = requests.post(consumer_connector_management_url + "transferprocess",
                          headers={'Content-Type': 'application/json'},
                          data=json.dumps(transfer_data))
 ic(response.status_code, json.loads(response.text))
@@ -235,7 +237,7 @@ state = ""
 
 while state != "COMPLETED":
     ic("Requesting status of transfer")
-    response = requests.get(consumer_connector_management_url + "v1/data/transferprocess/" + transfer_id,
+    response = requests.get(consumer_connector_management_url + "transferprocess/" + transfer_id,
                             headers={'Content-Type': 'application/json'})
     state = json.loads(response.text)["state"]
     ic(state)
