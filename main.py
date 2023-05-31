@@ -10,7 +10,7 @@ Endpoint configuration
 provider_connector_control_url = "http://localhost:19192/control/"
 provider_connector_public_url = "http://localhost:19291/public/"
 provider_connector_management_url = "http://localhost:19193/api/v1/data/"
-provider_connector_ids_url = "http://localhost:19194/api/"
+provider_connector_dsp_url = "http://localhost:19194/api/v1/dsp"
 
 consumer_connector_control_url = "http://localhost:29192/control/"
 consumer_connector_public_url = "http://localhost:29291/public/"
@@ -111,7 +111,7 @@ Create Policy
 ic("Creating policy in provider connector")
 policy_data = {
     "@context": CONTEXT,
-    "@id": "231802-bb34-11ec-8422-0242ac120002",
+    "@id": "aPolicy",
     EDC_PREFIX + "policy": {
         ODRL_PREFIX + "permission": [
             {
@@ -151,8 +151,6 @@ response = requests.post(provider_connector_management_url + "v2/contractdefinit
                          data=json.dumps(contract_definition_data))
 ic(response.status_code, json.loads(response.text))
 
-exit()
-
 """
 Fetch catalog from provider
 """
@@ -160,15 +158,21 @@ Fetch catalog from provider
 # Consumer asks own connector to query providers catalog
 ic("Query providers catalog")
 catalog_request_data = {
-    "providerUrl": provider_connector_ids_url + "v1/ids/data"
+    "@context": CONTEXT,
+    EDC_PREFIX + "providerUrl": provider_connector_dsp_url,
+    EDC_PREFIX + "protocol": "dataspace-protocol-http"
 }
 
-response = requests.post(consumer_connector_management_url + "catalog/request",
+response = requests.post(consumer_connector_management_url + "v2/catalog/request",
                          headers={'Content-Type': 'application/json'},
                          data=json.dumps(catalog_request_data))
 ic(response.status_code, json.loads(response.text))
 
-offering_data = json.loads(response.text)["contractOffers"][0]
+offering_data = json.loads(response.text)["dcat:dataset"]
+if not isinstance(offering_data, dict):  # if there are multiple entries, choose the first one
+    offering_data = offering_data[0]
+
+exit()
 
 """
 Negotiate contract from available offerings
@@ -177,7 +181,7 @@ Negotiate contract from available offerings
 ic("Negotiate offer")
 consumer_offer_data = {
     "connectorId": "http-pull-provider",
-    "connectorAddress": provider_connector_ids_url + "v1/ids/data",
+    "connectorAddress": provider_connector_dsp_url + "v1/dsp/data",
     "protocol": "ids-multipart",
     "offer": {
         "offerId": offering_data["id"],
@@ -218,7 +222,7 @@ Start data transfer
 ic("Initiate data transfer")
 transfer_data = {
     "connectorId": "http-pull-provider",
-    "connectorAddress": provider_connector_ids_url + "v1/ids/data",
+    "connectorAddress": provider_connector_dsp_url + "v1/dsp/data",
     "contractId": agreement_id,
     "assetId": asset_id,
     "managedResources": "false",
