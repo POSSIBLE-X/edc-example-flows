@@ -17,6 +17,12 @@ consumer_connector_public_url = "http://localhost:29291/public/"
 consumer_connector_management_url = "http://localhost:29193/api/"
 
 """
+Constants
+"""
+EDC_NAMESPACE = "https://w3id.org/edc/v0.0.1/ns/"
+ODRL_SCHEMA = "http://www.w3.org/ns/odrl/2/"
+
+"""
 Connector initialization
 """
 
@@ -61,28 +67,37 @@ Create Asset
 # Provider
 ic("Creating asset in provider connector")
 asset_data = {
-    "asset": {
-        "properties": {
-            "asset:prop:id": "assetId",
-            "asset:prop:name": "product description",
-            "asset:prop:contenttype": "application/json"
+    EDC_NAMESPACE + "asset": {
+        "@context": {
+            "@vocab": EDC_NAMESPACE,
+            "edc": EDC_NAMESPACE
+        },
+        "@type": EDC_NAMESPACE + "Asset",
+        "@id": "test-asset-id",
+        EDC_NAMESPACE + "properties": {
+            EDC_NAMESPACE + "id": "test-asset-id",
+            EDC_NAMESPACE + "name": "assetId",
+            EDC_NAMESPACE + "description": "product description",
+            EDC_NAMESPACE + "version": "0.4.2",
+            EDC_NAMESPACE + "contenttype": "application/json"
         }
     },
-    "dataAddress": {
-        "properties": {
-            "name": "Test asset",
-            "baseUrl": "https://jsonplaceholder.typicode.com/users",
-            "type": "HttpData"
+    EDC_NAMESPACE + "dataAddress": {
+        "@type": EDC_NAMESPACE + "DataAddress",
+        EDC_NAMESPACE + "properties": {
+            EDC_NAMESPACE + "name": "Test asset",
+            EDC_NAMESPACE + "baseUrl": "https://jsonplaceholder.typicode.com/users",
+            EDC_NAMESPACE + "type": "HttpData"
         }
     }
 }
 
-response = requests.post(provider_connector_management_url + "v1/data/assets",
+response = requests.post(provider_connector_management_url + "v1/data/v2/assets",
                          headers={'Content-Type': 'application/json'},
                          data=json.dumps(asset_data))
-ic(response.status_code, json.loads(response.text))
+ic(response.status_code, response.text)
 # extract asset id from response
-asset_id = json.loads(response.text)["id"]
+# asset_id = json.loads(response.text)["id"]
 
 """
 Create Policy
@@ -91,29 +106,26 @@ Create Policy
 # Provider
 ic("Creating policy in provider connector")
 policy_data = {
-    "id": "aPolicy",
-    "policy": {
-        "uid": "231802-bb34-11ec-8422-0242ac120002",
-        "permissions": [
+    "@id": "231802-bb34-11ec-8422-0242ac120002",
+    EDC_NAMESPACE + "policy": {
+        ODRL_SCHEMA + "permission": [
             {
-                "target": "assetId",
-                "action": {
-                    "type": "USE"
+                ODRL_SCHEMA + "target": "assetId",
+                ODRL_SCHEMA + "action": {
+                    ODRL_SCHEMA + "type": "USE"
                 },
-                "edctype": "dataspaceconnector:permission"
+                ODRL_SCHEMA + "edctype": "dataspaceconnector:permission"
             }
         ],
-        "@type": {
-            "@policytype": "set"
-        }
+        "@type": ODRL_SCHEMA + "Set"
     }
 }
 
-response = requests.post(provider_connector_management_url + "v1/data/policydefinitions",
+response = requests.post(provider_connector_management_url + "v1/data/v2/policydefinitions",
                          headers={'Content-Type': 'application/json'},
                          data=json.dumps(policy_data))
-ic(response.status_code, json.loads(response.text))
-
+ic(response.status_code, response.text)
+exit()
 """
 Create contract definition
 """
