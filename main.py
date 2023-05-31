@@ -99,7 +99,7 @@ asset_data = {
 response = requests.post(provider_connector_management_url + "v2/assets",
                          headers={'Content-Type': 'application/json'},
                          data=json.dumps(asset_data))
-ic(response.status_code, response.text)
+ic(response.status_code, json.dumps(response.text))
 # extract asset id from response
 # asset_id = json.loads(response.text)["id"]
 
@@ -129,7 +129,7 @@ policy_data = {
 response = requests.post(provider_connector_management_url + "v2/policydefinitions",
                          headers={'Content-Type': 'application/json'},
                          data=json.dumps(policy_data))
-ic(response.status_code, response.text)
+ic(response.status_code, json.dumps(response.text))
 
 """
 Create contract definition
@@ -138,13 +138,15 @@ Create contract definition
 # Provider
 ic("Create contract definition for the created asset and policy on provider connector")
 contract_definition_data = {
-    "id": "1",
-    "accessPolicyId": "aPolicy",
-    "contractPolicyId": "aPolicy",
-    "criteria": []
+    "@context": CONTEXT,
+    "@type": EDC_PREFIX + "ContractDefinition",
+    "@id": "11",
+    EDC_PREFIX + "accessPolicyId": "aPolicy",
+    EDC_PREFIX + "contractPolicyId": "aPolicy",
+    EDC_PREFIX + "criteria": []
 }
 
-response = requests.post(provider_connector_management_url + "contractdefinitions",
+response = requests.post(provider_connector_management_url + "v2/contractdefinitions",
                          headers={'Content-Type': 'application/json'},
                          data=json.dumps(contract_definition_data))
 ic(response.status_code, json.loads(response.text))
