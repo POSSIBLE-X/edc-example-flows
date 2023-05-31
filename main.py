@@ -19,8 +19,15 @@ consumer_connector_management_url = "http://localhost:29193/api/"
 """
 Constants
 """
-EDC_NAMESPACE = "https://w3id.org/edc/v0.0.1/ns/"
-ODRL_SCHEMA = "http://www.w3.org/ns/odrl/2/"
+
+CONTEXT = {
+    "@vocab": "https://w3id.org/edc/v0.0.1/ns/",
+    "edc": "https://w3id.org/edc/v0.0.1/ns/",
+    "odrl": "http://www.w3.org/ns/odrl/2/"
+},
+
+EDC_PREFIX = "edc:"
+ODRL_PREFIX = "odrl:"
 
 """
 Connector initialization
@@ -67,27 +74,24 @@ Create Asset
 # Provider
 ic("Creating asset in provider connector")
 asset_data = {
-    EDC_NAMESPACE + "asset": {
-        "@context": {
-            "@vocab": EDC_NAMESPACE,
-            "edc": EDC_NAMESPACE
-        },
-        "@type": EDC_NAMESPACE + "Asset",
+    "@context": CONTEXT,
+    EDC_PREFIX + "asset": {
+        "@type": EDC_PREFIX + "Asset",
         "@id": "test-asset-id",
-        EDC_NAMESPACE + "properties": {
-            EDC_NAMESPACE + "id": "test-asset-id",
-            EDC_NAMESPACE + "name": "assetId",
-            EDC_NAMESPACE + "description": "product description",
-            EDC_NAMESPACE + "version": "0.4.2",
-            EDC_NAMESPACE + "contenttype": "application/json"
+        EDC_PREFIX + "properties": {
+            EDC_PREFIX + "id": "test-asset-id",
+            EDC_PREFIX + "name": "assetId",
+            EDC_PREFIX + "description": "product description",
+            EDC_PREFIX + "version": "0.4.2",
+            EDC_PREFIX + "contenttype": "application/json"
         }
     },
-    EDC_NAMESPACE + "dataAddress": {
-        "@type": EDC_NAMESPACE + "DataAddress",
-        EDC_NAMESPACE + "properties": {
-            EDC_NAMESPACE + "name": "Test asset",
-            EDC_NAMESPACE + "baseUrl": "https://jsonplaceholder.typicode.com/users",
-            EDC_NAMESPACE + "type": "HttpData"
+    EDC_PREFIX + "dataAddress": {
+        "@type": EDC_PREFIX + "DataAddress",
+        EDC_PREFIX + "properties": {
+            EDC_PREFIX + "name": "Test asset",
+            EDC_PREFIX + "baseUrl": "https://jsonplaceholder.typicode.com/users",
+            EDC_PREFIX + "type": "HttpData"
         }
     }
 }
@@ -106,18 +110,19 @@ Create Policy
 # Provider
 ic("Creating policy in provider connector")
 policy_data = {
+    "@context": CONTEXT,
     "@id": "231802-bb34-11ec-8422-0242ac120002",
-    EDC_NAMESPACE + "policy": {
-        ODRL_SCHEMA + "permission": [
+    EDC_PREFIX + "policy": {
+        ODRL_PREFIX + "permission": [
             {
-                ODRL_SCHEMA + "target": "assetId",
-                ODRL_SCHEMA + "action": {
-                    ODRL_SCHEMA + "type": "USE"
+                ODRL_PREFIX + "target": "assetId",
+                ODRL_PREFIX + "action": {
+                    ODRL_PREFIX + "type": "USE"
                 },
-                ODRL_SCHEMA + "edctype": "dataspaceconnector:permission"
+                ODRL_PREFIX + "edctype": "dataspaceconnector:permission"
             }
         ],
-        "@type": ODRL_SCHEMA + "Set"
+        "@type": ODRL_PREFIX + "Set"
     }
 }
 
