@@ -15,6 +15,7 @@ provider_connector_dsp_url = "http://localhost:19194/api/v1/dsp"
 consumer_connector_control_url = "http://localhost:29192/control/"
 consumer_connector_public_url = "http://localhost:29291/public/"
 consumer_connector_management_url = "http://localhost:29193/api/v1/data/"
+consumer_connector_dsp_url = "http://localhost:29194/api/v1/dsp"
 
 """
 Constants
@@ -172,31 +173,32 @@ offering_data = json.loads(response.text)["dcat:dataset"]
 if not isinstance(offering_data, dict):  # if there are multiple entries, choose the first one
     offering_data = offering_data[0]
 
-exit()
-
 """
 Negotiate contract from available offerings
 """
 # Consumer asks own connector to negotiate with providers connector (repeating the offering)
 ic("Negotiate offer")
 consumer_offer_data = {
-    "connectorId": "http-pull-provider",
-    "connectorAddress": provider_connector_dsp_url + "v1/dsp/data",
-    "protocol": "ids-multipart",
-    "offer": {
-        "offerId": offering_data["id"],
-        "assetId": offering_data["assetId"],
-        "policy": offering_data["policy"]
+    "@context": CONTEXT,
+    "@type": EDC_PREFIX + "NegotiationInitiateRequestDto",
+    EDC_PREFIX + "connectorId": "provider",
+    EDC_PREFIX + "connectorAddress": provider_connector_dsp_url,
+    EDC_PREFIX + "protocol": "dataspace-protocol-http",
+    EDC_PREFIX + "offer": {
+        "@type": EDC_PREFIX + "ContractOfferDescription",
+        EDC_PREFIX + "offerId": offering_data["odrl:hasPolicy"]["@id"],
+        EDC_PREFIX + "assetId": offering_data["edc:id"],
+        EDC_PREFIX + "policy": offering_data["odrl:hasPolicy"]
     }
 }
 
-response = requests.post(consumer_connector_management_url + "contractnegotiations",
+response = requests.post(consumer_connector_management_url + "v2/contractnegotiations",
                          headers={'Content-Type': 'application/json'},
                          data=json.dumps(consumer_offer_data))
-ic(response.status_code, json.loads(response.text))
+ic(response.status_code, response.text)
 
 # extract negotiation id
-negotiation_id = json.loads(response.text)["id"]
+negotiation_id = json.loads(response.text)["@id"]
 
 """
 Check negotiation status
@@ -207,13 +209,15 @@ state = ""
 
 while state != "FINALIZED":
     ic("Requesting status of negotiation")
-    response = requests.get(consumer_connector_management_url + "contractnegotiations/" + negotiation_id,
+    response = requests.get(consumer_connector_management_url + "v2/contractnegotiations/" + negotiation_id,
                             headers={'Content-Type': 'application/json'})
-    state = json.loads(response.text)["state"]
+    state = json.loads(response.text)[EDC_PREFIX + "state"]
     ic(state)
     time.sleep(1)
 ic(response.status_code, json.loads(response.text))
-agreement_id = json.loads(response.text)["contractAgreementId"]
+agreement_id = json.loads(response.text)[EDC_PREFIX + "contractAgreementId"]
+
+exit()
 
 """
 Start data transfer
