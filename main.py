@@ -24,7 +24,7 @@ Constants
 CONTEXT = {
     "@vocab": "https://w3id.org/edc/v0.0.1/ns/",
     "edc": "https://w3id.org/edc/v0.0.1/ns/",
-    "odrl": "http://www.w3.org/ns/odrl/2/"
+    "odrl": "http://www.w3.org/ns/odrl/2/",
 },
 
 EDC_PREFIX = "edc:"
@@ -100,9 +100,9 @@ asset_data = {
 response = requests.post(provider_connector_management_url + "v2/assets",
                          headers={'Content-Type': 'application/json'},
                          data=json.dumps(asset_data))
-ic(response.status_code, json.dumps(response.text))
+ic(response.status_code, json.loads(response.text))
 # extract asset id from response
-# asset_id = json.loads(response.text)["id"]
+asset_id = json.loads(response.text)["@id"]
 
 """
 Create Policy
@@ -130,7 +130,7 @@ policy_data = {
 response = requests.post(provider_connector_management_url + "v2/policydefinitions",
                          headers={'Content-Type': 'application/json'},
                          data=json.dumps(policy_data))
-ic(response.status_code, json.dumps(response.text))
+ic(response.status_code, json.loads(response.text))
 
 """
 Create contract definition
@@ -217,26 +217,32 @@ while state != "FINALIZED":
 ic(response.status_code, json.loads(response.text))
 agreement_id = json.loads(response.text)[EDC_PREFIX + "contractAgreementId"]
 
-exit()
-
 """
 Start data transfer
 """
 # Consumer asks own connector to start transfer
 ic("Initiate data transfer")
 transfer_data = {
-    "connectorId": "http-pull-provider",
-    "connectorAddress": provider_connector_dsp_url + "v1/dsp/data",
-    "contractId": agreement_id,
-    "assetId": asset_id,
-    "managedResources": "false",
-    "dataDestination": {"type": "HttpProxy"}
+    "@context": CONTEXT,
+    "@type": EDC_PREFIX + "TransferRequestDto",
+    EDC_PREFIX + "connectorId": "provider",
+    EDC_PREFIX + "connectorAddress": provider_connector_dsp_url,
+    EDC_PREFIX + "contractId": agreement_id,
+    EDC_PREFIX + "assetId": asset_id,
+    EDC_PREFIX + "managedResources": False,
+    EDC_PREFIX + "protocol": "dataspace-protocol-http",
+    EDC_PREFIX + "dataDestination": {
+        "@type": EDC_PREFIX + "DataAddress",
+        EDC_PREFIX + "properties": {
+            EDC_PREFIX + "type": "HttpProxy"
+        }
+    }
 }
-response = requests.post(consumer_connector_management_url + "transferprocess",
+response = requests.post(consumer_connector_management_url + "v2/transferprocesses",
                          headers={'Content-Type': 'application/json'},
                          data=json.dumps(transfer_data))
 ic(response.status_code, json.loads(response.text))
-transfer_id = json.loads(response.text)["id"]
+transfer_id = json.loads(response.text)["@id"]
 
 """
 Check transfer status
@@ -247,11 +253,12 @@ state = ""
 
 while state != "COMPLETED":
     ic("Requesting status of transfer")
-    response = requests.get(consumer_connector_management_url + "transferprocess/" + transfer_id,
+    response = requests.get(consumer_connector_management_url + "v2/transferprocesses/" + transfer_id,
                             headers={'Content-Type': 'application/json'})
-    state = json.loads(response.text)["state"]
+    state = json.loads(response.text)[EDC_PREFIX + "state"]
     ic(state)
     time.sleep(1)
+
 ic(response.status_code, json.loads(response.text))
 
 # at this point we ask the consumer backend service (separate from the connector) for the authentication token
