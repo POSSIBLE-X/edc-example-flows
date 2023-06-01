@@ -1,10 +1,6 @@
-import time
-
-import requests
 from icecream import ic
-import json
 from common_v2 import create_dataplane, create_asset, create_policy, create_contract_definition, query_catalog, \
-    negotiate_offer, poll_negotiation_until_finalized, initiate_data_transfer, poll_transfer_until_completed
+    negotiate_offer, poll_negotiation_until_finalized, initiate_data_transfer, poll_transfer_until_completed, EDC_PREFIX
 
 """
 Endpoint configuration
@@ -17,20 +13,6 @@ provider_connector_dsp_url = "http://localhost:19194/protocol"
 consumer_connector_control_url = "http://localhost:29192/control/"
 consumer_connector_public_url = "http://localhost:29291/public/"
 consumer_connector_management_url = "http://localhost:29193/management/"
-consumer_connector_dsp_url = "http://localhost:29194/protocol"
-
-"""
-Constants
-"""
-
-CONTEXT = {
-    "@vocab": "https://w3id.org/edc/v0.0.1/ns/",
-    "edc": "https://w3id.org/edc/v0.0.1/ns/",
-    "odrl": "http://www.w3.org/ns/odrl/2/",
-},
-
-EDC_PREFIX = "edc:"
-ODRL_PREFIX = "odrl:"
 
 """
 Connector initialization
@@ -111,6 +93,7 @@ Start data transfer
 # Consumer asks own connector to start transfer
 ic("Initiate data transfer")
 transfer_id = initiate_data_transfer("provider", provider_connector_dsp_url, agreement_id, asset_id,
+                                     {EDC_PREFIX + "type": "HttpProxy"},
                                      consumer_connector_management_url)
 
 """

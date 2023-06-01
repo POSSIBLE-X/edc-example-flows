@@ -171,7 +171,7 @@ def poll_negotiation_until_finalized(connector_management_url, negotiation_id, v
     return json.loads(response.text)[EDC_PREFIX + "contractAgreementId"]
 
 
-def initiate_data_transfer(connector_id, connector_address, agreement_id, asset_id,
+def initiate_data_transfer(connector_id, connector_address, agreement_id, asset_id, data_destination_properties,
                            connector_management_url, verbose=True):
     transfer_data = {
         "@context": CONTEXT,
@@ -184,9 +184,7 @@ def initiate_data_transfer(connector_id, connector_address, agreement_id, asset_
         EDC_PREFIX + "protocol": "dataspace-protocol-http",
         EDC_PREFIX + "dataDestination": {
             "@type": EDC_PREFIX + "DataAddress",
-            EDC_PREFIX + "properties": {
-                EDC_PREFIX + "type": "HttpProxy"
-            }
+            EDC_PREFIX + "properties": data_destination_properties
         }
     }
     response = requests.post(connector_management_url + "v2/transferprocesses",
