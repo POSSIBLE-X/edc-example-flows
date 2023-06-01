@@ -9,13 +9,13 @@ Endpoint configuration
 """
 provider_connector_control_url = "http://localhost:19192/control/"
 provider_connector_public_url = "http://localhost:19291/public/"
-provider_connector_management_url = "http://localhost:19193/api/v1/data/"
-provider_connector_dsp_url = "http://localhost:19194/api/v1/dsp"
+provider_connector_management_url = "http://localhost:19193/management/"
+provider_connector_dsp_url = "http://localhost:19194/protocol"
 
 consumer_connector_control_url = "http://localhost:29192/control/"
 consumer_connector_public_url = "http://localhost:29291/public/"
-consumer_connector_management_url = "http://localhost:29193/api/v1/data/"
-consumer_connector_dsp_url = "http://localhost:29194/api/v1/dsp"
+consumer_connector_management_url = "http://localhost:29193/management/"
+consumer_connector_dsp_url = "http://localhost:29194/protocol"
 
 """
 Constants
@@ -78,9 +78,8 @@ asset_data = {
     "@context": CONTEXT,
     EDC_PREFIX + "asset": {
         "@type": EDC_PREFIX + "Asset",
-        "@id": "test-asset-id",
+        "@id": "assetId",
         EDC_PREFIX + "properties": {
-            EDC_PREFIX + "id": "test-asset-id",
             EDC_PREFIX + "name": "assetId",
             EDC_PREFIX + "description": "product description",
             EDC_PREFIX + "version": "0.4.2",
@@ -114,6 +113,7 @@ policy_data = {
     "@context": CONTEXT,
     "@id": "aPolicy",
     EDC_PREFIX + "policy": {
+        "@context": "http://www.w3.org/ns/odrl.jsonld",
         ODRL_PREFIX + "permission": [
             {
                 ODRL_PREFIX + "target": "assetId",
@@ -131,6 +131,7 @@ response = requests.post(provider_connector_management_url + "v2/policydefinitio
                          headers={'Content-Type': 'application/json'},
                          data=json.dumps(policy_data))
 ic(response.status_code, json.loads(response.text))
+policy_id = json.loads(response.text)["@id"]
 
 """
 Create contract definition
@@ -141,10 +142,10 @@ ic("Create contract definition for the created asset and policy on provider conn
 contract_definition_data = {
     "@context": CONTEXT,
     "@type": EDC_PREFIX + "ContractDefinition",
-    "@id": "11",
-    EDC_PREFIX + "accessPolicyId": "aPolicy",
-    EDC_PREFIX + "contractPolicyId": "aPolicy",
-    EDC_PREFIX + "criteria": []
+    "@id": "1",
+    EDC_PREFIX + "accessPolicyId": policy_id,
+    EDC_PREFIX + "contractPolicyId": policy_id,
+    EDC_PREFIX + "assetsSelector": []
 }
 
 response = requests.post(provider_connector_management_url + "v2/contractdefinitions",
@@ -187,6 +188,8 @@ consumer_offer_data = {
     "@context": CONTEXT,
     "@type": EDC_PREFIX + "NegotiationInitiateRequestDto",
     EDC_PREFIX + "connectorId": "provider",
+    EDC_PREFIX + "consumerId": "consumer",
+    EDC_PREFIX + "providerId": "provider",
     EDC_PREFIX + "connectorAddress": provider_connector_dsp_url,
     EDC_PREFIX + "protocol": "dataspace-protocol-http",
     EDC_PREFIX + "offer": {
@@ -200,7 +203,7 @@ consumer_offer_data = {
 response = requests.post(consumer_connector_management_url + "v2/contractnegotiations",
                          headers={'Content-Type': 'application/json'},
                          data=json.dumps(consumer_offer_data))
-ic(response.status_code, response.text)
+ic(response.status_code, json.loads(response.text))
 
 # extract negotiation id
 negotiation_id = json.loads(response.text)["@id"]
