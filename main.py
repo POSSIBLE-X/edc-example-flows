@@ -177,6 +177,11 @@ if not isinstance(offering_data, dict):  # if there are multiple entries, choose
 Negotiate contract from available offerings
 """
 # Consumer asks own connector to negotiate with providers connector (repeating the offering)
+
+# modify offer
+# offering_data["odrl:hasPolicy"]["odrl:permission"]["odrl:action"]["odrl:type"] = "DISTRIBUTE"
+# this fails immediately in ContractValidationServiceImpl.java:validateConfirmed(...) which checks for equality.
+
 ic("Negotiate offer")
 consumer_offer_data = {
     "@context": CONTEXT,
