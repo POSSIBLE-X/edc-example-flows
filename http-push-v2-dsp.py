@@ -47,7 +47,7 @@ Create contract definition
 
 # Provider
 ic("Create contract definition for the created asset and policy on provider connector")
-create_contract_definition(policy_id, policy_id, provider_connector_management_url)
+create_contract_definition(policy_id, policy_id, "assetId", provider_connector_management_url)
 
 """
 Fetch catalog from provider
@@ -66,7 +66,7 @@ Negotiate contract from available offerings
 # Consumer asks own connector to negotiate with providers connector (repeating the offering)
 ic("Negotiate offer")
 
-negotiation_id = negotiate_offer("provider", "consumer", "provider", provider_connector_dsp_url,
+negotiation_id = negotiate_offer("connector", "connector", "connector", provider_connector_dsp_url,
                                  offering_data["odrl:hasPolicy"]["@id"], offering_data["edc:id"],
                                  offering_data["odrl:hasPolicy"], consumer_connector_management_url)
 

@@ -94,14 +94,15 @@ def create_policy(policy_id, target_asset_id, connector_management_url, verbose=
     return json.loads(response.text)["@id"]
 
 
-def create_contract_definition(access_policy_id, contract_policy_id, connector_management_url, verbose=True):  # TODO for now we use no selector (i.e. all assets are selected)
+def create_contract_definition(access_policy_id, contract_policy_id, asset_id, connector_management_url, verbose=True):  # TODO for now we use no selector (i.e. all assets are selected)
     contract_definition_data = {
         "@context": CONTEXT,
         "@type": EDC_PREFIX + "ContractDefinition",
         "@id": "1",
         EDC_PREFIX + "accessPolicyId": access_policy_id,
         EDC_PREFIX + "contractPolicyId": contract_policy_id,
-        EDC_PREFIX + "assetsSelector": []
+        EDC_PREFIX + "assetsSelector": [
+        ]
     }
 
     response = requests.post(connector_management_url + "v2/contractdefinitions",
