@@ -64,3 +64,31 @@ java -jar transfer/transfer-07-provider-push-http/provider-push-http-backend-ser
 python3 http-push-v2-dsp.py
 ``` 
 After running these commands, you should see some output on the consumer backend terminal, which contains the data from the provider side (which in our example is a publicly hosted demo-json).
+
+## IONOS S3 Push
+- Configure connectors:
+  - adjust edc.ionos.access.key and edc.ionos.secret.key in example/file-transfer-push/consumer/resources/consumer-config.properties
+  - adjust edc.ionos.access.key and edc.ionos.secret.key in example/file-transfer-push/provider/resources/provider-config.properties
+- Build the Connectors and consumer backend:
+``` 
+cd connector/v2
+./gradlew :example:file-transfer-push:provider:build
+./gradlew :example:file-transfer-push:consumer:build
+./gradlew :example:file-transfer-push:transfer-file:build
+
+```
+- Run the Connectors and consumer backend service:
+``` 
+# create 2 terminals, each running one of the following commands
+# terminal 1
+java -Dedc.fs.config=example/file-transfer-push/consumer/resources/consumer-config.properties -jar example/file-transfer-push/consumer/build/libs/dataspace-connector.jar
+
+# terminal 2
+java -Dedc.fs.config=example/file-transfer-push/provider/resources/provider-config.properties -jar example/file-transfer-push/provider/build/libs/dataspace-connector.jar
+``` 
+- Execute example flow and watch the outputs of all terminals:
+``` 
+# cd back to root of repo
+python3 s3-push.py
+``` 
+After running these commands, a csv file should have been transferred from the provider bucket to the consumer bucket.
