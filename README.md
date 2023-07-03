@@ -69,7 +69,7 @@ After running these commands, you should see some output on the consumer backend
 - Configure connectors:
   - adjust edc.ionos.access.key and edc.ionos.secret.key in example/file-transfer-push/consumer/resources/consumer-config.properties
   - adjust edc.ionos.access.key and edc.ionos.secret.key in example/file-transfer-push/provider/resources/provider-config.properties
-- Build the Connectors and consumer backend:
+- Build the Connectors:
 ``` 
 cd connector/v2
 ./gradlew :example:file-transfer-push:provider:build
