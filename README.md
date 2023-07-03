@@ -77,7 +77,7 @@ cd connector/v2
 ./gradlew :example:file-transfer-push:transfer-file:build
 
 ```
-- Run the Connectors and consumer backend service:
+- Run the Connectors:
 ``` 
 # create 2 terminals, each running one of the following commands
 # terminal 1
