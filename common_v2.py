@@ -14,6 +14,11 @@ CONTEXT = {
 EDC_PREFIX = "edc:"
 ODRL_PREFIX = "odrl:"
 
+edc_headers = {
+    'Content-Type': 'application/json',
+    'X-API-Key': 'password'
+}
+
 
 def create_dataplane(transfer_url, public_api_url, connector_management_url, verbose=True):
     provider_dp_instance_data = {
@@ -27,14 +32,46 @@ def create_dataplane(transfer_url, public_api_url, connector_management_url, ver
         }
     }
     response = requests.post(connector_management_url + "instances",
-                             headers={'Content-Type': 'application/json'},
+                             headers=edc_headers,
                              data=json.dumps(provider_dp_instance_data))
     if verbose:
         ic(response.status_code, response.text)
 
 
-def create_asset(asset_id, asset_name, asset_description, asset_version, asset_contenttype,
-                 data_name, data_base_url, data_type,
+def create_http_dataaddress(name, base_url):
+    return {
+            "@type": EDC_PREFIX + "DataAddress",
+            EDC_PREFIX + "properties": {
+                EDC_PREFIX + "name": name,
+                EDC_PREFIX + "baseUrl": base_url,
+                EDC_PREFIX + "type": "HttpData"
+            }
+        }
+
+
+def create_http_proxy_dataaddress():
+    return {
+            "@type": EDC_PREFIX + "DataAddress",
+            EDC_PREFIX + "properties": {
+                EDC_PREFIX + "type": "HttpProxy"
+            }
+        }
+
+
+def create_s3_dataaddress(name, bucket_name, container, blob_name, key_name, storage):
+    return {
+            "@type": EDC_PREFIX + "DataAddress",
+            EDC_PREFIX + "name": name,
+            EDC_PREFIX + "bucketName": bucket_name,
+            EDC_PREFIX + "container": container,
+            EDC_PREFIX + "blobName": blob_name,
+            EDC_PREFIX + "keyName": key_name,
+            EDC_PREFIX + "storage": storage,
+            EDC_PREFIX + "type": "IonosS3"
+        }
+
+
+def create_asset(asset_id, asset_name, asset_description, asset_version, asset_contenttype, data_address,
                  connector_management_url, verbose=True):
     asset_data = {
         "@context": CONTEXT,
@@ -48,18 +85,12 @@ def create_asset(asset_id, asset_name, asset_description, asset_version, asset_c
                 EDC_PREFIX + "contenttype": asset_contenttype
             }
         },
-        EDC_PREFIX + "dataAddress": {
-            "@type": EDC_PREFIX + "DataAddress",
-            EDC_PREFIX + "properties": {
-                EDC_PREFIX + "name": data_name,
-                EDC_PREFIX + "baseUrl": data_base_url,
-                EDC_PREFIX + "type": data_type
-            }
-        }
+        EDC_PREFIX + "dataAddress": data_address
     }
+    ic(asset_data)
 
     response = requests.post(connector_management_url + "v2/assets",
-                             headers={'Content-Type': 'application/json'},
+                             headers=edc_headers,
                              data=json.dumps(asset_data))
     if verbose:
         ic(response.status_code, json.loads(response.text))
@@ -87,7 +118,7 @@ def create_policy(policy_id, target_asset_id, connector_management_url, verbose=
     }
 
     response = requests.post(connector_management_url + "v2/policydefinitions",
-                             headers={'Content-Type': 'application/json'},
+                             headers=edc_headers,
                              data=json.dumps(policy_data))
     if verbose:
         ic(response.status_code, json.loads(response.text))
@@ -106,7 +137,7 @@ def create_contract_definition(access_policy_id, contract_policy_id, asset_id, c
     }
 
     response = requests.post(connector_management_url + "v2/contractdefinitions",
-                             headers={'Content-Type': 'application/json'},
+                             headers=edc_headers,
                              data=json.dumps(contract_definition_data))
     if verbose:
         ic(response.status_code, json.loads(response.text))
@@ -120,7 +151,7 @@ def query_catalog(provider_url, connector_management_url, verbose=True):
     }
 
     response = requests.post(connector_management_url + "v2/catalog/request",
-                             headers={'Content-Type': 'application/json'},
+                             headers=edc_headers,
                              data=json.dumps(catalog_request_data))
     if verbose:
         ic(response.status_code, json.loads(response.text))
@@ -147,7 +178,7 @@ def negotiate_offer(connector_id, consumer_id, provider_id, connector_address, o
     }
 
     response = requests.post(connector_management_url + "v2/contractnegotiations",
-                             headers={'Content-Type': 'application/json'},
+                             headers=edc_headers,
                              data=json.dumps(consumer_offer_data))
     if verbose:
         ic(response.status_code, json.loads(response.text))
@@ -162,7 +193,7 @@ def poll_negotiation_until_finalized(connector_management_url, negotiation_id, v
     while state != "FINALIZED":
         ic("Requesting status of negotiation")
         response = requests.get(connector_management_url + "v2/contractnegotiations/" + negotiation_id,
-                                headers={'Content-Type': 'application/json'})
+                                headers=edc_headers)
         state = json.loads(response.text)[EDC_PREFIX + "state"]
         if verbose:
             ic(state)
@@ -172,7 +203,7 @@ def poll_negotiation_until_finalized(connector_management_url, negotiation_id, v
     return json.loads(response.text)[EDC_PREFIX + "contractAgreementId"]
 
 
-def initiate_data_transfer(connector_id, connector_address, agreement_id, asset_id, data_destination_properties,
+def initiate_data_transfer(connector_id, connector_address, agreement_id, asset_id, data_destination,
                            connector_management_url, verbose=True):
     transfer_data = {
         "@context": CONTEXT,
@@ -183,13 +214,10 @@ def initiate_data_transfer(connector_id, connector_address, agreement_id, asset_
         EDC_PREFIX + "assetId": asset_id,
         EDC_PREFIX + "managedResources": False,
         EDC_PREFIX + "protocol": "dataspace-protocol-http",
-        EDC_PREFIX + "dataDestination": {
-            "@type": EDC_PREFIX + "DataAddress",
-            EDC_PREFIX + "properties": data_destination_properties
-        }
+        EDC_PREFIX + "dataDestination": data_destination
     }
     response = requests.post(connector_management_url + "v2/transferprocesses",
-                             headers={'Content-Type': 'application/json'},
+                             headers=edc_headers,
                              data=json.dumps(transfer_data))
     if verbose:
         ic(response.status_code, json.loads(response.text))
@@ -202,7 +230,7 @@ def poll_transfer_until_completed(connector_management_url, transfer_id, verbose
     while state != "COMPLETED":
         ic("Requesting status of transfer")
         response = requests.get(connector_management_url + "v2/transferprocesses/" + transfer_id,
-                                headers={'Content-Type': 'application/json'})
+                                headers=edc_headers)
         state = json.loads(response.text)[EDC_PREFIX + "state"]
         if verbose:
             ic(state)

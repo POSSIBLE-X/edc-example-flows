@@ -1,33 +1,16 @@
 from icecream import ic
-from common_v2 import create_dataplane, create_asset, create_policy, create_contract_definition, query_catalog, \
+from common_v2 import create_asset, create_policy, create_contract_definition, query_catalog, \
     negotiate_offer, poll_negotiation_until_finalized, initiate_data_transfer, poll_transfer_until_completed, \
-    create_http_dataaddress, create_http_proxy_dataaddress
+    create_s3_dataaddress
 
 """
 Endpoint configuration
 """
-provider_connector_control_url = "http://localhost:19192/control/"
-provider_connector_public_url = "http://localhost:19291/public/"
-provider_connector_management_url = "http://localhost:19193/management/"
-provider_connector_dsp_url = "http://localhost:19194/protocol"
+provider_connector_management_url = "http://localhost:8182/management/"
+provider_connector_dsp_url = "http://localhost:8282/protocol"
 
-consumer_connector_control_url = "http://localhost:29192/control/"
-consumer_connector_public_url = "http://localhost:29291/public/"
-consumer_connector_management_url = "http://localhost:29193/management/"
-
-"""
-Connector initialization
-"""
-
-# Provider
-ic("Preparing provider connector dataplane")
-create_dataplane(provider_connector_control_url + "transfer", provider_connector_public_url,
-                 provider_connector_management_url)
-
-# Consumer
-ic("Preparing consumer connector dataplane")
-create_dataplane(consumer_connector_control_url + "transfer", consumer_connector_public_url,
-                 consumer_connector_management_url)
+consumer_connector_management_url = "http://localhost:9192/management/"
+consumer_connector_dsp_url = "http://localhost:9292/protocol"
 
 """
 Create Asset
@@ -36,7 +19,8 @@ Create Asset
 # Provider
 ic("Creating asset in provider connector")
 asset_id = create_asset("assetId", "My Asset", "Description", "v1.2.3", "application/json",
-                        create_http_dataaddress("My Asset", "https://jsonplaceholder.typicode.com/users"),
+                        create_s3_dataaddress("device1-data.csv", "merlotedcprovider", "company1", "device1-data.csv",
+                                              "device1-data.csv", "s3-eu-central-1.ionoscloud.com"),
                         provider_connector_management_url)
 
 """
@@ -53,7 +37,7 @@ Create contract definition
 
 # Provider
 ic("Create contract definition for the created asset and policy on provider connector")
-create_contract_definition(policy_id, policy_id, provider_connector_management_url)
+create_contract_definition(policy_id, policy_id, "assetId", provider_connector_management_url)
 
 """
 Fetch catalog from provider
@@ -70,11 +54,6 @@ if not isinstance(offering_data, dict):  # if there are multiple entries, choose
 Negotiate contract from available offerings
 """
 # Consumer asks own connector to negotiate with providers connector (repeating the offering)
-
-# modify offer
-# offering_data["odrl:hasPolicy"]["odrl:permission"]["odrl:action"]["odrl:type"] = "DISTRIBUTE"
-# this fails immediately in ContractValidationServiceImpl.java:validateConfirmed(...) which checks for equality.
-
 ic("Negotiate offer")
 
 negotiation_id = negotiate_offer("provider", "consumer", "provider", provider_connector_dsp_url,
@@ -94,7 +73,8 @@ Start data transfer
 # Consumer asks own connector to start transfer
 ic("Initiate data transfer")
 transfer_id = initiate_data_transfer("provider", provider_connector_dsp_url, agreement_id, asset_id,
-                                     create_http_proxy_dataaddress(),
+                                     create_s3_dataaddress("device1-data.csv", "merlotedcconsumer", "company2", "device1-data.csv",
+                                                           "device1-data.csv", "s3-eu-central-1.ionoscloud.com"),
                                      consumer_connector_management_url)
 
 """

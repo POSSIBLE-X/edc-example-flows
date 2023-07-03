@@ -37,3 +37,15 @@ include("transfer:transfer-07-provider-push-http:provider-push-http-backend-serv
 
 // modules for code samples ------------------------------------------------------------------------
 include(":other:custom-runtime")
+
+// IONOS extension
+
+include(":edc-ionos-extension:data-plane-ionos-s3")
+include(":edc-ionos-extension:provision-ionos-s3")
+include(":edc-ionos-extension:core-ionos-s3")
+include(":edc-ionos-extension:vault-hashicorp")
+
+include(":example:file-transfer-push:provider")
+include(":example:file-transfer-push:consumer")
+include(":example:file-transfer-push:transfer-file")
+

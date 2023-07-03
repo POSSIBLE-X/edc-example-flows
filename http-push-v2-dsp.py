@@ -1,6 +1,7 @@
 from icecream import ic
 from common_v2 import create_dataplane, create_asset, create_policy, create_contract_definition, query_catalog, \
-    negotiate_offer, poll_negotiation_until_finalized, initiate_data_transfer, poll_transfer_until_completed, EDC_PREFIX
+    negotiate_offer, poll_negotiation_until_finalized, initiate_data_transfer, poll_transfer_until_completed, \
+    create_http_dataaddress
 
 """
 Endpoint configuration
@@ -30,7 +31,7 @@ Create Asset
 # Provider
 ic("Creating asset in provider connector")
 asset_id = create_asset("assetId", "My Asset", "Description", "v1.2.3", "application/json",
-                        "My Asset", "https://jsonplaceholder.typicode.com/users", "HttpData",
+                        create_http_dataaddress("My Asset", "https://jsonplaceholder.typicode.com/users"),
                         provider_connector_management_url)
 
 """
@@ -83,8 +84,7 @@ Start data transfer
 # Consumer asks own connector to start transfer
 ic("Initiate data transfer")
 transfer_id = initiate_data_transfer("provider", provider_connector_dsp_url, agreement_id, asset_id,
-                                     {EDC_PREFIX + "type": "HttpData",
-                                      EDC_PREFIX + "baseUrl": consumer_backend_url},
+                                     create_http_dataaddress("", consumer_backend_url),
                                      consumer_connector_management_url)
 
 """
