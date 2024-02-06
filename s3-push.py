@@ -1,4 +1,5 @@
 from icecream import ic
+import uuid
 from common_v2 import create_asset, create_policy, create_contract_definition, query_catalog, \
     negotiate_offer, poll_negotiation_until_finalized, initiate_data_transfer, poll_transfer_until_completed, \
     create_s3_dataaddress
@@ -15,13 +16,13 @@ consumer_connector_dsp_url = "http://localhost:9292/protocol"
 """
 Create Asset
 """
-
 # Provider
 ic("Creating asset in provider connector")
-asset_id = create_asset("assetId", "My Asset", "Description", "v1.2.3", "application/json",
+asset_id = create_asset(str(uuid.uuid4()), "My Asset", "Description", "v1.2.3", "application/json",
                         create_s3_dataaddress("device1-data.csv", "merlotedcprovider", "company1", "device1-data.csv",
                                               "device1-data.csv", "s3-eu-central-1.ionoscloud.com"),
                         provider_connector_management_url)
+ic(asset_id)
 
 """
 Create Policy
@@ -29,7 +30,7 @@ Create Policy
 
 # Provider
 ic("Creating policy in provider connector")
-policy_id = create_policy("aPolicy", "assetId", provider_connector_management_url)
+policy_id = create_policy(str(uuid.uuid4()), asset_id, provider_connector_management_url)
 
 """
 Create contract definition
@@ -37,7 +38,7 @@ Create contract definition
 
 # Provider
 ic("Create contract definition for the created asset and policy on provider connector")
-create_contract_definition(policy_id, policy_id, "assetId", provider_connector_management_url)
+create_contract_definition(policy_id, policy_id, asset_id, provider_connector_management_url)
 
 """
 Fetch catalog from provider
@@ -57,7 +58,7 @@ Negotiate contract from available offerings
 ic("Negotiate offer")
 
 negotiation_id = negotiate_offer("provider", "consumer", "provider", provider_connector_dsp_url,
-                                 offering_data["odrl:hasPolicy"]["@id"], offering_data["edc:id"],
+                                 offering_data["odrl:hasPolicy"]["@id"], offering_data["id"],
                                  offering_data["odrl:hasPolicy"], consumer_connector_management_url)
 
 """

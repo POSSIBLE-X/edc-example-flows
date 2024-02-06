@@ -3,15 +3,16 @@ import time
 import requests
 from icecream import ic
 import json
+import uuid
 
 
 CONTEXT = {
     "@vocab": "https://w3id.org/edc/v0.0.1/ns/",
     "edc": "https://w3id.org/edc/v0.0.1/ns/",
-    "odrl": "http://www.w3.org/ns/odrl/2/",
+    "odrl": "http://www.w3.org/ns/odrl/2/"
 },
 
-EDC_PREFIX = "edc:"
+EDC_PREFIX = ""
 ODRL_PREFIX = "odrl:"
 
 edc_headers = {
@@ -31,6 +32,7 @@ def create_dataplane(transfer_url, public_api_url, connector_management_url, ver
             "publicApiUrl": public_api_url
         }
     }
+    ic(provider_dp_instance_data)
     response = requests.post(connector_management_url + "instances",
                              headers=edc_headers,
                              data=json.dumps(provider_dp_instance_data))
@@ -75,25 +77,23 @@ def create_asset(asset_id, asset_name, asset_description, asset_version, asset_c
                  connector_management_url, verbose=True):
     asset_data = {
         "@context": CONTEXT,
-        EDC_PREFIX + "asset": {
-            "@type": EDC_PREFIX + "Asset",
-            "@id": asset_id,
-            EDC_PREFIX + "properties": {
-                EDC_PREFIX + "name": asset_name,
-                EDC_PREFIX + "description": asset_description,
-                EDC_PREFIX + "version": asset_version,
-                EDC_PREFIX + "contenttype": asset_contenttype
-            }
+        "@id": asset_id,
+        EDC_PREFIX + "properties": {
+            EDC_PREFIX + "name": asset_name,
+            EDC_PREFIX + "description": asset_description,
+            EDC_PREFIX + "version": asset_version,
+            EDC_PREFIX + "contenttype": asset_contenttype
         },
         EDC_PREFIX + "dataAddress": data_address
     }
     ic(asset_data)
 
-    response = requests.post(connector_management_url + "v2/assets",
+    response = requests.post(connector_management_url + "v3/assets",
                              headers=edc_headers,
                              data=json.dumps(asset_data))
     if verbose:
-        ic(response.status_code, json.loads(response.text))
+        ic(response.status_code)
+        ic(json.loads(response.text))
     # extract asset id from response
     return json.loads(response.text)["@id"]
 
@@ -106,7 +106,9 @@ def create_policy(policy_id, target_asset_id, connector_management_url, verbose=
             "@context": "http://www.w3.org/ns/odrl.jsonld",
             ODRL_PREFIX + "permission": [
                 {
-                    ODRL_PREFIX + "target": target_asset_id,
+                    ODRL_PREFIX + "target": {
+                        "@id": target_asset_id
+                    },
                     ODRL_PREFIX + "action": {
                         ODRL_PREFIX + "type": "USE"
                     },
@@ -116,6 +118,8 @@ def create_policy(policy_id, target_asset_id, connector_management_url, verbose=
             "@type": ODRL_PREFIX + "Set"
         }
     }
+
+    ic(policy_data)
 
     response = requests.post(connector_management_url + "v2/policydefinitions",
                              headers=edc_headers,
@@ -129,12 +133,19 @@ def create_contract_definition(access_policy_id, contract_policy_id, asset_id, c
     contract_definition_data = {
         "@context": CONTEXT,
         "@type": EDC_PREFIX + "ContractDefinition",
-        "@id": "1",
+        "@id": str(uuid.uuid4()),
         EDC_PREFIX + "accessPolicyId": access_policy_id,
         EDC_PREFIX + "contractPolicyId": contract_policy_id,
         EDC_PREFIX + "assetsSelector": [
+            {
+                EDC_PREFIX + "operandLeft": "https://w3id.org/edc/v0.0.1/ns/id",
+                EDC_PREFIX + "operator": "=",
+                EDC_PREFIX + "operandRight": asset_id
+            }
         ]
     }
+
+    ic(contract_definition_data)
 
     response = requests.post(connector_management_url + "v2/contractdefinitions",
                              headers=edc_headers,
@@ -149,6 +160,8 @@ def query_catalog(provider_url, connector_management_url, verbose=True):
         EDC_PREFIX + "providerUrl": provider_url,
         EDC_PREFIX + "protocol": "dataspace-protocol-http"
     }
+
+    ic(catalog_request_data)
 
     response = requests.post(connector_management_url + "v2/catalog/request",
                              headers=edc_headers,
@@ -176,6 +189,8 @@ def negotiate_offer(connector_id, consumer_id, provider_id, connector_address, o
             EDC_PREFIX + "policy": policy
         }
     }
+
+    ic(consumer_offer_data)
 
     response = requests.post(connector_management_url + "v2/contractnegotiations",
                              headers=edc_headers,
@@ -211,11 +226,14 @@ def initiate_data_transfer(connector_id, connector_address, agreement_id, asset_
         EDC_PREFIX + "connectorId": connector_id,
         EDC_PREFIX + "connectorAddress": connector_address,
         EDC_PREFIX + "contractId": agreement_id,
-        EDC_PREFIX + "assetId": asset_id,
+        EDC_PREFIX + "assetId": "something",  # TODO this should actually be the asset id but seems to be unused by the EDC currently
         EDC_PREFIX + "managedResources": False,
         EDC_PREFIX + "protocol": "dataspace-protocol-http",
         EDC_PREFIX + "dataDestination": data_destination
     }
+
+    ic(transfer_data)
+
     response = requests.post(connector_management_url + "v2/transferprocesses",
                              headers=edc_headers,
                              data=json.dumps(transfer_data))
