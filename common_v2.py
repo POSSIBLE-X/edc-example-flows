@@ -15,13 +15,18 @@ CONTEXT = {
 EDC_PREFIX = ""
 ODRL_PREFIX = "odrl:"
 
-edc_headers = {
+edc1_headers = {
     'Content-Type': 'application/json',
-    'X-API-Key': 'password'
+    'X-API-Key': '1234'
+}
+
+edc2_headers = {
+    'Content-Type': 'application/json',
+    'X-API-Key': '5678'
 }
 
 
-def create_dataplane(transfer_url, public_api_url, connector_management_url, verbose=True):
+def create_dataplane(transfer_url, public_api_url, connector_management_url, edc_headers, verbose=True):
     provider_dp_instance_data = {
         "edctype": "dataspaceconnector:dataplaneinstance",
         "id": "http-pull-provider-dataplane",
@@ -74,7 +79,7 @@ def create_s3_dataaddress(name, bucket_name, container, blob_name, key_name, sto
 
 
 def create_asset(asset_id, asset_name, asset_description, asset_version, asset_contenttype, data_address,
-                 connector_management_url, verbose=True):
+                 connector_management_url, edc_headers, verbose=True):
     asset_data = {
         "@context": CONTEXT,
         "@id": asset_id,
@@ -98,7 +103,7 @@ def create_asset(asset_id, asset_name, asset_description, asset_version, asset_c
     return json.loads(response.text)["@id"]
 
 
-def create_policy(policy_id, target_asset_id, connector_management_url, verbose=True):  # TODO for now we always use the same permissions
+def create_policy(policy_id, target_asset_id, connector_management_url, edc_headers, verbose=True):  # TODO for now we always use the same permissions
     policy_data = {
         "@context": CONTEXT,
         "@id": policy_id,
@@ -129,7 +134,7 @@ def create_policy(policy_id, target_asset_id, connector_management_url, verbose=
     return json.loads(response.text)["@id"]
 
 
-def create_contract_definition(access_policy_id, contract_policy_id, asset_id, connector_management_url, verbose=True):  # TODO for now we use no selector (i.e. all assets are selected)
+def create_contract_definition(access_policy_id, contract_policy_id, asset_id, connector_management_url, edc_headers, verbose=True):  # TODO for now we use no selector (i.e. all assets are selected)
     contract_definition_data = {
         "@context": CONTEXT,
         "@type": EDC_PREFIX + "ContractDefinition",
@@ -154,7 +159,7 @@ def create_contract_definition(access_policy_id, contract_policy_id, asset_id, c
         ic(response.status_code, json.loads(response.text))
 
 
-def query_catalog(provider_url, connector_management_url, verbose=True):
+def query_catalog(provider_url, connector_management_url, edc_headers, verbose=True):
     catalog_request_data = {
         "@context": CONTEXT,
         EDC_PREFIX + "providerUrl": provider_url,
@@ -173,7 +178,7 @@ def query_catalog(provider_url, connector_management_url, verbose=True):
 
 
 def negotiate_offer(connector_id, consumer_id, provider_id, connector_address, offer_id, asset_id, policy,
-                    connector_management_url, verbose=True):
+                    connector_management_url, edc_headers, verbose=True):
     consumer_offer_data = {
         "@context": CONTEXT,
         "@type": EDC_PREFIX + "NegotiationInitiateRequestDto",
@@ -202,7 +207,7 @@ def negotiate_offer(connector_id, consumer_id, provider_id, connector_address, o
     return json.loads(response.text)["@id"]
 
 
-def poll_negotiation_until_finalized(connector_management_url, negotiation_id, verbose=True):
+def poll_negotiation_until_finalized(connector_management_url, negotiation_id, edc_headers, verbose=True):
     state = ""
 
     while state != "FINALIZED":
@@ -219,12 +224,12 @@ def poll_negotiation_until_finalized(connector_management_url, negotiation_id, v
 
 
 def initiate_data_transfer(connector_id, connector_address, agreement_id, asset_id, data_destination,
-                           connector_management_url, verbose=True):
+                           connector_management_url, edc_headers, verbose=True):
     transfer_data = {
         "@context": CONTEXT,
         "@type": EDC_PREFIX + "TransferRequestDto",
         EDC_PREFIX + "connectorId": connector_id,
-        EDC_PREFIX + "connectorAddress": connector_address,
+        EDC_PREFIX + "counterPartyAddress": connector_address,
         EDC_PREFIX + "contractId": agreement_id,
         EDC_PREFIX + "assetId": "something",  # TODO this should actually be the asset id but seems to be unused by the EDC currently
         EDC_PREFIX + "managedResources": False,
@@ -242,7 +247,7 @@ def initiate_data_transfer(connector_id, connector_address, agreement_id, asset_
     return json.loads(response.text)["@id"]
 
 
-def poll_transfer_until_completed(connector_management_url, transfer_id, verbose=True):
+def poll_transfer_until_completed(connector_management_url, transfer_id, edc_headers, verbose=True):
     state = ""
 
     while state != "COMPLETED":
