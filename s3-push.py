@@ -15,18 +15,18 @@
 """
 from icecream import ic
 import uuid
-from common_v2 import create_asset, create_policy, create_contract_definition, query_catalog, \
+from common import create_asset, create_policy, create_contract_definition, deprovision_s3_token, query_catalog, \
     negotiate_offer, poll_negotiation_until_finalized, initiate_data_transfer, poll_transfer_until_completed, \
-    create_s3_dataaddress, edc1_headers, edc2_headers
+    create_s3_dataaddress_source, create_s3_dataaddress_destination, edc1_headers, edc2_headers
 
 """
 Endpoint configuration
 """
-consumer_connector_management_url = "http://localhost:8123/edc1/management/"
-consumer_connector_dsp_url = "http://localhost:8123/edc1/protocol"
+provider_connector_management_url = "http://localhost:19193/management/"
+provider_connector_dsp_url = "http://localhost:19194/protocol"
 
-provider_connector_management_url = "http://localhost:8123/edc2/management/"
-provider_connector_dsp_url = "http://localhost:8123/edc2/protocol"
+consumer_connector_management_url = "http://localhost:29193/management/"
+
 
 """
 Create Asset
@@ -34,15 +34,7 @@ Create Asset
 # Provider
 ic("Creating asset in provider connector")
 asset_id = create_asset(str(uuid.uuid4()), "My Asset", "Description", "v1.2.3", "application/json",
-                        {
-                            "type": "IonosS3",
-                            "keyName": "mykey123",
-                            "storage": "s3-eu-central-1.ionoscloud.com",
-                            "bucketName": "merlotedcprovider",
-                            "blobName": "testfolder/"
-                        },
-                        #create_s3_dataaddress("testfolder/", "merlotedcprovider", "company1", "testfolder/",
-                        #                      "testfolder/", "s3-eu-central-1.ionoscloud.com"),
+                        create_s3_dataaddress_source("s3-eu-central-2.ionoscloud.com", "dev-provider-edc-bucket-possible-31952746", "testfolder/"),
                         provider_connector_management_url, edc2_headers)
 ic(asset_id)
 
@@ -79,9 +71,9 @@ Negotiate contract from available offerings
 # Consumer asks own connector to negotiate with providers connector (repeating the offering)
 ic("Negotiate offer")
 
-negotiation_id = negotiate_offer("59:0B:DD:26:41:AC:57:D7:ED:76:D5:84:F8:BC:AC:8E:4C:C7:56:70:keyid:59:0B:DD:26:41:AC:57:D7:ED:76:D5:84:F8:BC:AC:8E:4C:C7:56:70",
-                                  "20:1D:9C:04:0A:71:B9:E7:8C:28:9D:70:A6:84:43:59:2D:BA:E8:B3:keyid:20:1D:9C:04:0A:71:B9:E7:8C:28:9D:70:A6:84:43:59:2D:BA:E8:B3", 
-                                  "59:0B:DD:26:41:AC:57:D7:ED:76:D5:84:F8:BC:AC:8E:4C:C7:56:70:keyid:59:0B:DD:26:41:AC:57:D7:ED:76:D5:84:F8:BC:AC:8E:4C:C7:56:70", 
+negotiation_id = negotiate_offer("provider",
+                                  "consumer", 
+                                  "provider", 
                                   provider_connector_dsp_url,
                                  offering_data["odrl:hasPolicy"]["@id"], offering_data["id"],
                                  offering_data["odrl:hasPolicy"], consumer_connector_management_url, edc1_headers)
@@ -99,14 +91,7 @@ Start data transfer
 # Consumer asks own connector to start transfer
 ic("Initiate data transfer")
 transfer_id = initiate_data_transfer("edc2", provider_connector_dsp_url, agreement_id, asset_id,
-                                     {
-                                        "type":"IonosS3",
-                                        "keyName":"mykey123",
-                                        "blobName": None,
-                                        "bucketName":"merlotedcconsumer"
-                                    },
-                                    #create_s3_dataaddress("testfolder/", "merlotedcconsumer", "company2", "testfolder/",
-                                    #                       "testfolder/", "s3-eu-central-1.ionoscloud.com"),
+                                     create_s3_dataaddress_destination("s3-eu-central-2.ionoscloud.com", "dev-consumer-edc-bucket-possible-31952746", "myTargetPath/"),
                                      consumer_connector_management_url, edc1_headers)
 
 """
@@ -116,5 +101,9 @@ Check transfer status
 ic("Check transfer status and wait until completed")
 poll_transfer_until_completed(consumer_connector_management_url, transfer_id, edc1_headers)
 
-# at this point we ask the consumer backend service (separate from the connector) for the authentication token
-# and query the public endpoint of the provider with this authorization like a proxy
+"""
+Deprovision S3 token
+"""
+# Consumer asks own connector for status
+ic("Deprovision generated S3 Token")
+deprovision_s3_token(consumer_connector_management_url, transfer_id, edc1_headers)

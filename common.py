@@ -27,9 +27,6 @@ CONTEXT = {
     "odrl": "http://www.w3.org/ns/odrl/2/"
 },
 
-EDC_PREFIX = ""
-ODRL_PREFIX = "odrl:"
-
 edc1_headers = {
     'Content-Type': 'application/json',
     'X-API-Key': '1234'
@@ -62,35 +59,39 @@ def create_dataplane(transfer_url, public_api_url, connector_management_url, edc
 
 def create_http_dataaddress(name, base_url):
     return {
-            "@type": EDC_PREFIX + "DataAddress",
-            EDC_PREFIX + "properties": {
-                EDC_PREFIX + "name": name,
-                EDC_PREFIX + "baseUrl": base_url,
-                EDC_PREFIX + "type": "HttpData"
-            }
+            "type": "HttpData",
+            "name": name,
+            "baseUrl": base_url,
+            "proxyPath": "true"
         }
 
 
 def create_http_proxy_dataaddress():
     return {
-            "@type": EDC_PREFIX + "DataAddress",
-            EDC_PREFIX + "properties": {
-                EDC_PREFIX + "type": "HttpProxy"
-            }
+            "type": "HttpProxy"
         }
 
 
-def create_s3_dataaddress(name, bucket_name, container, blob_name, key_name, storage):
+def create_s3_dataaddress_source(storage, bucket_name, blob_name, name="someName", container="someContainer"):
     return {
-            "@type": EDC_PREFIX + "DataAddress",
-            EDC_PREFIX + "name": name,
-            EDC_PREFIX + "bucketName": bucket_name,
-            EDC_PREFIX + "container": container,
-            EDC_PREFIX + "blobName": blob_name,
-            EDC_PREFIX + "keyName": key_name,
-            EDC_PREFIX + "storage": storage,
-            EDC_PREFIX + "type": "IonosS3"
-        }
+        "bucketName": bucket_name,
+        "blobName": blob_name,
+        "storage": storage,
+        "type": "IonosS3",
+        # the following parameters seem to have no effect
+        "name": name,
+        "container": container,
+    }
+
+def create_s3_dataaddress_destination(storage, bucket_name, dest_path, key_name="someKey"):
+    return {
+        "type": "IonosS3",
+        "storage": storage,
+        "bucketName": bucket_name,
+        "path": dest_path,
+        # the following parameters seem to have no effect
+        "keyName": key_name
+    }
 
 
 def create_asset(asset_id, asset_name, asset_description, asset_version, asset_contenttype, data_address,
@@ -98,13 +99,13 @@ def create_asset(asset_id, asset_name, asset_description, asset_version, asset_c
     asset_data = {
         "@context": CONTEXT,
         "@id": asset_id,
-        EDC_PREFIX + "properties": {
-            EDC_PREFIX + "name": asset_name,
-            EDC_PREFIX + "description": asset_description,
-            EDC_PREFIX + "version": asset_version,
-            EDC_PREFIX + "contenttype": asset_contenttype
+        "properties": {
+            "name": asset_name,
+            "contenttype": asset_contenttype,
+            "description": asset_description,
+            "version": asset_version
         },
-        EDC_PREFIX + "dataAddress": data_address
+        "dataAddress": data_address
     }
     ic(asset_data)
 
@@ -118,24 +119,15 @@ def create_asset(asset_id, asset_name, asset_description, asset_version, asset_c
     return json.loads(response.text)["@id"]
 
 
-def create_policy(policy_id, target_asset_id, connector_management_url, edc_headers, verbose=True):  # TODO for now we always use the same permissions
+def create_policy(policy_id, connector_management_url, edc_headers, verbose=True):
     policy_data = {
         "@context": CONTEXT,
         "@id": policy_id,
-        EDC_PREFIX + "policy": {
-            "@context": "http://www.w3.org/ns/odrl.jsonld",
-            ODRL_PREFIX + "permission": [
-                {
-                    ODRL_PREFIX + "target": {
-                        "@id": target_asset_id
-                    },
-                    ODRL_PREFIX + "action": {
-                        ODRL_PREFIX + "type": "USE"
-                    },
-                    ODRL_PREFIX + "edctype": "dataspaceconnector:permission"
-                }
-            ],
-            "@type": ODRL_PREFIX + "Set"
+        "policy": {
+            "@type": "set",
+            "odrl:permission": [],
+            "odrl:prohibition": [],
+            "odrl:obligation": []
         }
     }
 
@@ -149,18 +141,17 @@ def create_policy(policy_id, target_asset_id, connector_management_url, edc_head
     return json.loads(response.text)["@id"]
 
 
-def create_contract_definition(access_policy_id, contract_policy_id, asset_id, connector_management_url, edc_headers, verbose=True):  # TODO for now we use no selector (i.e. all assets are selected)
+def create_contract_definition(access_policy_id, contract_policy_id, asset_id, connector_management_url, edc_headers, verbose=True):
     contract_definition_data = {
         "@context": CONTEXT,
-        "@type": EDC_PREFIX + "ContractDefinition",
         "@id": str(uuid.uuid4()),
-        EDC_PREFIX + "accessPolicyId": access_policy_id,
-        EDC_PREFIX + "contractPolicyId": contract_policy_id,
-        EDC_PREFIX + "assetsSelector": [
+        "accessPolicyId": access_policy_id,
+        "contractPolicyId": contract_policy_id,
+        "assetsSelector": [
             {
-                EDC_PREFIX + "operandLeft": "https://w3id.org/edc/v0.0.1/ns/id",
-                EDC_PREFIX + "operator": "=",
-                EDC_PREFIX + "operandRight": asset_id
+                "operandLeft": "https://w3id.org/edc/v0.0.1/ns/id",
+                "operator": "=",
+                "operandRight": asset_id
             }
         ]
     }
@@ -177,8 +168,8 @@ def create_contract_definition(access_policy_id, contract_policy_id, asset_id, c
 def query_catalog(provider_url, connector_management_url, edc_headers, verbose=True):
     catalog_request_data = {
         "@context": CONTEXT,
-        EDC_PREFIX + "providerUrl": provider_url,
-        EDC_PREFIX + "protocol": "dataspace-protocol-http"
+        "counterPartyAddress": provider_url,
+        "protocol": "dataspace-protocol-http"
     }
 
     ic(catalog_request_data)
@@ -196,17 +187,20 @@ def negotiate_offer(connector_id, consumer_id, provider_id, connector_address, o
                     connector_management_url, edc_headers, verbose=True):
     consumer_offer_data = {
         "@context": CONTEXT,
-        "@type": EDC_PREFIX + "NegotiationInitiateRequestDto",
-        EDC_PREFIX + "connectorId": connector_id,
-        EDC_PREFIX + "consumerId": consumer_id,
-        EDC_PREFIX + "providerId": provider_id,
-        EDC_PREFIX + "connectorAddress": connector_address,
-        EDC_PREFIX + "protocol": "dataspace-protocol-http",
-        EDC_PREFIX + "offer": {
-            "@type": EDC_PREFIX + "ContractOfferDescription",
-            EDC_PREFIX + "offerId": offer_id,
-            EDC_PREFIX + "assetId": asset_id,
-            EDC_PREFIX + "policy": policy
+        "@type": "NegotiationInitiateRequestDto",
+        "connectorId": connector_id,
+        "consumerId": consumer_id,
+        "providerId": provider_id,
+        "counterPartyAddress": connector_address,
+        "protocol": "dataspace-protocol-http",
+        "policy": {
+            "@context": "http://www.w3.org/ns/odrl.jsonld",
+            "@type": "Set",
+            "@id": offer_id,
+            "permission": [],
+            "prohibition": [],
+            "obligation": [],
+            "target": asset_id
         }
     }
 
@@ -229,27 +223,26 @@ def poll_negotiation_until_finalized(connector_management_url, negotiation_id, e
         ic("Requesting status of negotiation")
         response = requests.get(connector_management_url + "v2/contractnegotiations/" + negotiation_id,
                                 headers=edc_headers)
-        state = json.loads(response.text)[EDC_PREFIX + "state"]
+        state = json.loads(response.text)["state"]
         if verbose:
             ic(state)
         time.sleep(1)
     if verbose:
         ic(response.status_code, json.loads(response.text))
-    return json.loads(response.text)[EDC_PREFIX + "contractAgreementId"]
+    return json.loads(response.text)["contractAgreementId"]
 
 
 def initiate_data_transfer(connector_id, connector_address, agreement_id, asset_id, data_destination,
                            connector_management_url, edc_headers, verbose=True):
     transfer_data = {
         "@context": CONTEXT,
-        "@type": EDC_PREFIX + "TransferRequestDto",
-        EDC_PREFIX + "connectorId": connector_id,
-        EDC_PREFIX + "counterPartyAddress": connector_address,
-        EDC_PREFIX + "contractId": agreement_id,
-        EDC_PREFIX + "assetId": "something",  # TODO this should actually be the asset id but seems to be unused by the EDC currently
-        EDC_PREFIX + "managedResources": False,
-        EDC_PREFIX + "protocol": "dataspace-protocol-http",
-        EDC_PREFIX + "dataDestination": data_destination
+        "@type": "TransferRequestDto",
+        "connectorId": connector_id,
+        "counterPartyAddress": connector_address,
+        "contractId": agreement_id,
+        "assetId": asset_id,  # seems to be unused by the EDC currently
+        "protocol": "dataspace-protocol-http",
+        "dataDestination": data_destination
     }
 
     ic(transfer_data)
@@ -269,10 +262,17 @@ def poll_transfer_until_completed(connector_management_url, transfer_id, edc_hea
         ic("Requesting status of transfer")
         response = requests.get(connector_management_url + "v2/transferprocesses/" + transfer_id,
                                 headers=edc_headers)
-        state = json.loads(response.text)[EDC_PREFIX + "state"]
+        state = json.loads(response.text)["state"]
         if verbose:
             ic(state)
         time.sleep(1)
 
+    if verbose:
+        ic(response.status_code, json.loads(response.text))
+
+def deprovision_s3_token(connector_management_url, transfer_id, edc_headers, verbose=True):
+    ic("Requesting status of transfer")
+    response = requests.post(connector_management_url + "/v2/transferprocesses/" + transfer_id + "/deprovision",
+                            headers=edc_headers)
     if verbose:
         ic(response.status_code, json.loads(response.text))
