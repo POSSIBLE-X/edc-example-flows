@@ -44,7 +44,7 @@ Create Policy
 
 # Provider
 ic("Creating policy in provider connector")
-policy_id = create_policy(str(uuid.uuid4()), asset_id, provider_connector_management_url, edc2_headers)
+policy_id = create_policy(str(uuid.uuid4()), provider_connector_management_url, edc2_headers)
 
 """
 Create contract definition
@@ -75,7 +75,6 @@ negotiation_id = negotiate_offer("provider",
                                   "consumer", 
                                   "provider", 
                                   provider_connector_dsp_url,
-                                 offering_data["odrl:hasPolicy"]["@id"], offering_data["id"],
                                  offering_data["odrl:hasPolicy"], consumer_connector_management_url, edc1_headers)
 
 """

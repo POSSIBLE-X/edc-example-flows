@@ -82,8 +82,7 @@ Negotiate contract from available offerings
 # Consumer asks own connector to negotiate with providers connector (repeating the offering)
 ic("Negotiate offer")
 
-negotiation_id = negotiate_offer("connector", "connector", "connector", provider_connector_dsp_url,
-                                 offering_data["odrl:hasPolicy"]["@id"], offering_data["edc:id"],
+negotiation_id = negotiate_offer("provider", "consumer", "provider", provider_connector_dsp_url,
                                  offering_data["odrl:hasPolicy"], consumer_connector_management_url, edc1_headers)
 
 """

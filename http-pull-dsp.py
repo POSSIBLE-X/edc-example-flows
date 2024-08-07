@@ -93,7 +93,6 @@ Negotiate contract from available offerings
 ic("Negotiate offer")
 
 negotiation_id = negotiate_offer("provider", "consumer", "provider", provider_connector_dsp_url,
-                                 offering_data["odrl:hasPolicy"]["@id"], offering_data["edc:id"],
                                  offering_data["odrl:hasPolicy"], consumer_connector_management_url, edc1_headers)
 
 """

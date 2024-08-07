@@ -183,7 +183,7 @@ def query_catalog(provider_url, connector_management_url, edc_headers, verbose=T
     return json.loads(response.text)["dcat:dataset"]
 
 
-def negotiate_offer(connector_id, consumer_id, provider_id, connector_address, offer_id, asset_id, policy,
+def negotiate_offer(connector_id, consumer_id, provider_id, connector_address, policy,
                     connector_management_url, edc_headers, verbose=True):
     consumer_offer_data = {
         "@context": CONTEXT,
@@ -193,15 +193,7 @@ def negotiate_offer(connector_id, consumer_id, provider_id, connector_address, o
         "providerId": provider_id,
         "counterPartyAddress": connector_address,
         "protocol": "dataspace-protocol-http",
-        "policy": {
-            "@context": "http://www.w3.org/ns/odrl.jsonld",
-            "@type": "Set",
-            "@id": offer_id,
-            "permission": [],
-            "prohibition": [],
-            "obligation": [],
-            "target": asset_id
-        }
+        "policy": policy
     }
 
     ic(consumer_offer_data)
